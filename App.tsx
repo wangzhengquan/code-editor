@@ -34,6 +34,39 @@ const updateFileContentInTree = (nodes: FileNode[], fileId: string, newContent: 
   });
 };
 
+// Helper to add a node to a specific parent
+const addNodeToTree = (nodes: FileNode[], parentId: string, newNode: FileNode): FileNode[] => {
+  return nodes.map(node => {
+    if (node.id === parentId && node.type === 'folder') {
+      return { 
+        ...node, 
+        isOpen: true, // Auto open folder when adding content
+        children: [...(node.children || []), newNode].sort((a, b) => {
+            // Sort folders first, then files
+            if (a.type === b.type) return a.name.localeCompare(b.name);
+            return a.type === 'folder' ? -1 : 1;
+        })
+      };
+    }
+    if (node.children) {
+      return { ...node, children: addNodeToTree(node.children, parentId, newNode) };
+    }
+    return node;
+  });
+};
+
+// Helper to delete a node
+const deleteNodeFromTree = (nodes: FileNode[], nodeId: string): FileNode[] => {
+  return nodes
+    .filter(node => node.id !== nodeId)
+    .map(node => {
+      if (node.children) {
+        return { ...node, children: deleteNodeFromTree(node.children, nodeId) };
+      }
+      return node;
+    });
+};
+
 const App: React.FC = () => {
   const [files, setFiles] = useState<FileNode[]>(initialFileSystem);
   const [activeFile, setActiveFile] = useState<FileNode | null>(null);
@@ -79,12 +112,32 @@ const App: React.FC = () => {
 
   // Handle content update
   const handleUpdateContent = useCallback((fileId: string, content: string) => {
-      // Update the file tree
       setFiles(prev => updateFileContentInTree(prev, fileId, content));
-      
-      // Also update the active file ref if it matches (to keep UI in sync immediately if needed)
       setActiveFile(prev => prev && prev.id === fileId ? { ...prev, content } : prev);
   }, []);
+
+  // Handle creating a new file/folder
+  const handleCreateNode = useCallback((parentId: string, type: 'file' | 'folder', name: string) => {
+      const newNode: FileNode = {
+          id: `${name}-${Date.now()}`,
+          name: name,
+          type: type,
+          children: type === 'folder' ? [] : undefined,
+          content: type === 'file' ? '' : undefined,
+          language: type === 'file' ? (name.split('.').pop() === 'ts' || name.split('.').pop() === 'tsx' ? 'typescript' : 'text') : undefined
+      };
+      setFiles(prev => addNodeToTree(prev, parentId, newNode));
+  }, []);
+
+  // Handle deleting a node
+  const handleDeleteNode = useCallback((nodeId: string) => {
+      setFiles(prev => deleteNodeFromTree(prev, nodeId));
+      // Close if it was open
+      setOpenFiles(prev => prev.filter(f => f.id !== nodeId));
+      if (activeFile?.id === nodeId) {
+          setActiveFile(null);
+      }
+  }, [activeFile]);
 
   const isDark = theme === 'dark';
   const mainBg = isDark ? 'bg-[#1e1e1e]' : 'bg-[#ffffff]';
@@ -122,6 +175,8 @@ const App: React.FC = () => {
                     activeFileId={activeFile?.id || null}
                     onFileClick={handleFileClick}
                     onFolderToggle={handleFolderToggle}
+                    onCreateNode={handleCreateNode}
+                    onDeleteNode={handleDeleteNode}
                     theme={theme}
                 />
             }
