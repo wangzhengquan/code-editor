@@ -43,12 +43,12 @@ export const MockEditor: React.FC = () => {
         <CodeLine num={5} indent={1} content={<>initialWidth?: <span className="text-blue-400">number</span>;</>} />
         <CodeLine num={6} content={'}'} />
         <CodeLine num={7} content="" />
-        <CodeLine num={8} content={<><span className="text-purple-400">export const</span> <span className="text-yellow-300">Splitter</span>: React.FC&lt;SplitterProps&gt; = ({'{'} children {'}'}) <span className="text-blue-400">=></span> {'{'}</>} />
+        <CodeLine num={8} content={<><span className="text-purple-400">export const</span> <span className="text-yellow-300">Splitter</span>: React.FC&lt;SplitterProps&gt; = ({'{'} children {'}'}) <span className="text-blue-400">=&gt;</span> {'{'}</>} />
         <CodeLine num={9} indent={1} content={<><span className="text-purple-400">const</span> [width, setWidth] = useState(<span className="text-blue-400">50</span>);</>} />
         <CodeLine num={10} indent={1} content={<><span className="text-purple-400">const</span> isResizing = useRef(<span className="text-blue-400">false</span>);</>} />
         <CodeLine num={11} content="" />
         <CodeLine num={12} indent={1} content={<><span className="text-gray-500">// Drag logic implementation</span></>} />
-        <CodeLine num={13} indent={1} content={<><span className="text-purple-400">const</span> handleMouseDown = (e) <span className="text-blue-400">=></span> {'{'}</>} />
+        <CodeLine num={13} indent={1} content={<><span className="text-purple-400">const</span> handleMouseDown = (e) <span className="text-blue-400">=&gt;</span> {'{'}</>} />
         <CodeLine num={14} indent={2} content={<>isResizing.current = <span className="text-blue-400">true</span>;</>} />
         <CodeLine num={15} indent={2} content={<>document.addEventListener(<span className="text-green-400">'mousemove'</span>, handleMouseMove);</>} />
         <CodeLine num={16} indent={1} content={'};'} />
