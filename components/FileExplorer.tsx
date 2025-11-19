@@ -2,12 +2,14 @@
 import React from 'react';
 import { FileNode } from '../data/fileSystem';
 import { ChevronRightIcon, ChevronDownIcon, FileIcon, FolderIcon } from './Icons';
+import { Theme } from '../App';
 
 interface FileExplorerProps {
   files: FileNode[];
   activeFileId: string | null;
   onFileClick: (file: FileNode) => void;
   onFolderToggle: (folderId: string) => void;
+  theme: Theme;
 }
 
 const FileSystemItem: React.FC<{
@@ -16,9 +18,18 @@ const FileSystemItem: React.FC<{
   activeFileId: string | null;
   onFileClick: (file: FileNode) => void;
   onFolderToggle: (folderId: string) => void;
-}> = ({ node, level, activeFileId, onFileClick, onFolderToggle }) => {
+  theme: Theme;
+}> = ({ node, level, activeFileId, onFileClick, onFolderToggle, theme }) => {
   const isFolder = node.type === 'folder';
   const isActive = activeFileId === node.id;
+  const isDark = theme === 'dark';
+
+  // Dynamic styles based on theme
+  const activeClass = isDark ? 'bg-[#37373d] text-white' : 'bg-[#e4e6f1] text-[#333333]';
+  const inactiveClass = isDark 
+    ? 'text-neutral-400 hover:bg-[#2a2d2e] hover:text-neutral-200' 
+    : 'text-neutral-600 hover:bg-[#e8e8e8] hover:text-black';
+  const chevronColor = isDark ? 'text-neutral-400' : 'text-neutral-500';
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -33,13 +44,13 @@ const FileSystemItem: React.FC<{
     <div>
       <div
         className={`flex items-center py-1 px-2 cursor-pointer select-none text-sm transition-colors
-          ${isActive ? 'bg-[#37373d] text-white' : 'text-neutral-400 hover:bg-[#2a2d2e] hover:text-neutral-200'}
+          ${isActive ? activeClass : inactiveClass}
         `}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
         onClick={handleClick}
       >
         {isFolder && (
-          <span className="mr-1 text-neutral-400">
+          <span className={`mr-1 ${chevronColor}`}>
             {node.isOpen ? <ChevronDownIcon /> : <ChevronRightIcon />}
           </span>
         )}
@@ -59,6 +70,7 @@ const FileSystemItem: React.FC<{
               activeFileId={activeFileId}
               onFileClick={onFileClick}
               onFolderToggle={onFolderToggle}
+              theme={theme}
             />
           ))}
         </div>
@@ -67,10 +79,14 @@ const FileSystemItem: React.FC<{
   );
 };
 
-export const FileExplorer: React.FC<FileExplorerProps> = ({ files, activeFileId, onFileClick, onFolderToggle }) => {
+export const FileExplorer: React.FC<FileExplorerProps> = ({ files, activeFileId, onFileClick, onFolderToggle, theme }) => {
+  const isDark = theme === 'dark';
+  const bgClass = isDark ? 'bg-[#252526]' : 'bg-[#f3f3f3]';
+  const headerTextClass = isDark ? 'text-neutral-500' : 'text-neutral-600';
+
   return (
-    <div className="bg-[#252526] h-full w-full flex flex-col text-sm">
-      <div className="h-9 px-4 flex items-center text-xs font-bold text-neutral-500 uppercase tracking-wider shrink-0">
+    <div className={`${bgClass} h-full w-full flex flex-col text-sm transition-colors duration-200`}>
+      <div className={`h-9 px-4 flex items-center text-xs font-bold ${headerTextClass} uppercase tracking-wider shrink-0`}>
         Explorer
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -83,6 +99,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ files, activeFileId,
                 activeFileId={activeFileId}
                 onFileClick={onFileClick}
                 onFolderToggle={onFolderToggle}
+                theme={theme}
             />
             ))}
          </div>

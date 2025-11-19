@@ -1,5 +1,6 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { Theme } from '../App';
 
 interface ResizableSplitterProps {
   leftContent: React.ReactNode;
@@ -8,6 +9,7 @@ interface ResizableSplitterProps {
   minLeftWidth?: number; // Percentage
   maxLeftWidth?: number; // Percentage
   className?: string;
+  theme: Theme;
 }
 
 export const ResizableSplitter: React.FC<ResizableSplitterProps> = ({
@@ -17,6 +19,7 @@ export const ResizableSplitter: React.FC<ResizableSplitterProps> = ({
   minLeftWidth = 10,
   maxLeftWidth = 80,
   className = "",
+  theme,
 }) => {
   const [leftWidth, setLeftWidth] = useState(initialLeftWidth);
   const [isDragging, setIsDragging] = useState(false);
@@ -58,6 +61,9 @@ export const ResizableSplitter: React.FC<ResizableSplitterProps> = ({
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
+  const isDark = theme === 'dark';
+  const handleColor = isDark ? 'bg-[#1e1e1e]' : 'bg-[#e5e5e5]';
+
   return (
     <div 
       ref={containerRef} 
@@ -66,7 +72,7 @@ export const ResizableSplitter: React.FC<ResizableSplitterProps> = ({
       {/* Left Pane */}
       <div 
         style={{ width: `${leftWidth}%` }} 
-        className="h-full shrink-0 overflow-hidden relative bg-[#252526]"
+        className="h-full shrink-0 overflow-hidden relative"
       >
         {isDragging && <div className="absolute inset-0 z-50 bg-transparent" />}
         <div className="w-full h-full overflow-hidden flex flex-col">
@@ -77,7 +83,7 @@ export const ResizableSplitter: React.FC<ResizableSplitterProps> = ({
       {/* Resizer Handle */}
       <div
         className={`w-[1px] hover:w-[2px] h-full cursor-col-resize flex items-center justify-center shrink-0 z-40 relative group transition-all delay-75
-            ${isDragging ? 'bg-blue-500 w-[2px]' : 'bg-[#1e1e1e] hover:bg-blue-400'}`}
+            ${isDragging ? 'bg-blue-500 w-[2px]' : `${handleColor} hover:bg-blue-400`}`}
         onMouseDown={handleMouseDown}
       >
         {/* Invisible hit area */}
@@ -85,7 +91,7 @@ export const ResizableSplitter: React.FC<ResizableSplitterProps> = ({
       </div>
 
       {/* Right Pane */}
-      <div className="flex-1 h-full overflow-hidden relative min-w-0 bg-[#1e1e1e]">
+      <div className="flex-1 h-full overflow-hidden relative min-w-0">
          {isDragging && <div className="absolute inset-0 z-50 bg-transparent" />}
          <div className="w-full h-full overflow-hidden flex flex-col">
           {rightContent}
