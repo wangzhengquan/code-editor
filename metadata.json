@@ -1,0 +1,5 @@
+{
+  "name": "React Resizable Splitter",
+  "description": "A high-performance, customizable splitter component allowing users to resize two side-by-side panels via drag-and-drop.",
+  "requestFramePermissions": []
+}
