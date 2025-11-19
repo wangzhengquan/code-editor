@@ -1,64 +1,131 @@
-import React from 'react';
 
-const CodeLine = ({ num, content, indent = 0 }: { num: number; content: React.ReactNode; indent?: number }) => (
-  <div className="flex hover:bg-neutral-800/50 leading-6">
-    <div className="w-12 shrink-0 text-right pr-4 text-neutral-600 select-none text-xs py-1">{num}</div>
-    <div className="font-mono text-sm py-1 text-neutral-300 whitespace-pre" style={{ paddingLeft: `${indent * 20}px` }}>
-      {content}
-    </div>
-  </div>
-);
+import React, { useMemo } from 'react';
+import { FileNode } from '../data/fileSystem';
+import { CloseIcon, FileIcon } from './Icons';
 
-export const MockEditor: React.FC = () => {
+interface EditorProps {
+  activeFile: FileNode | null;
+  openFiles: FileNode[];
+  onCloseFile: (e: React.MouseEvent, fileId: string) => void;
+  onSwitchFile: (fileId: string) => void;
+}
+
+// Simple syntax highlighting helper
+const highlightSyntax = (code: string, language?: string) => {
+    if (!code) return <span />;
+    
+    const lines = code.split('\n');
+    
+    return lines.map((line, i) => {
+        // Very basic tokenization regexes for demo purposes
+        let formattedLine: React.ReactNode[] = [];
+        let remaining = line;
+        
+        // Split by spaces and symbols loosely to colorize keywords
+        // This is NOT a real parser, just a visual approximation for the demo
+        const parts = line.split(/([ (){}.,:;<>=])/);
+        
+        const nodes = parts.map((part, idx) => {
+            let colorClass = "text-[#d4d4d4]"; // Default VSCode light text
+            
+            if (['import', 'export', 'const', 'let', 'var', 'function', 'return', 'interface', 'type', 'from'].includes(part)) {
+                colorClass = "text-[#c586c0]"; // Purple keywords
+            } else if (['React', 'useState', 'useEffect', 'FC'].includes(part)) {
+                colorClass = "text-[#4ec9b0]"; // Teal classes/types
+            } else if (part.startsWith("'") || part.startsWith('"') || part.startsWith('`')) {
+                colorClass = "text-[#ce9178]"; // Orange strings
+            } else if (!isNaN(Number(part)) && part.trim() !== '') {
+                colorClass = "text-[#b5cea8]"; // Light green numbers
+            } else if (['true', 'false', 'null', 'undefined'].includes(part)) {
+                colorClass = "text-[#569cd6]"; // Blue booleans
+            } else if (['=>', '=', '===', ':', '{', '}'].includes(part)) {
+                colorClass = "text-[#d4d4d4]"; // Symbols
+            } else if (part.match(/^[A-Z][a-zA-Z0-9]*$/) && language === 'typescript') {
+                colorClass = "text-[#4ec9b0]"; // Likely component/class
+            } else if (part.match(/^[a-z][a-zA-Z0-9]*$/) && idx > 0 && parts[idx-1] === 'const') {
+                 colorClass = "text-[#9cdcfe]"; // Variable def
+            }
+
+            // Comments (Override)
+            if (line.trim().startsWith('//') || line.trim().startsWith('/*')) {
+                 return <span key={idx} className="text-[#6a9955]">{part}</span>;
+            }
+
+            return <span key={idx} className={colorClass}>{part}</span>;
+        });
+        
+        return (
+            <div key={i} className="flex leading-6 hover:bg-white/5">
+                <div className="w-12 shrink-0 text-right pr-4 text-[#858585] select-none text-xs py-[2px]">{i + 1}</div>
+                <div className="font-mono text-[13px] py-[2px] whitespace-pre text-[#d4d4d4]">
+                    {nodes}
+                </div>
+            </div>
+        );
+    });
+};
+
+export const Editor: React.FC<EditorProps> = ({ activeFile, openFiles, onCloseFile, onSwitchFile }) => {
+  
+  const content = useMemo(() => {
+    if (!activeFile) return null;
+    return highlightSyntax(activeFile.content || "", activeFile.language);
+  }, [activeFile]);
+
+  if (openFiles.length === 0) {
+    return (
+        <div className="h-full w-full bg-[#1e1e1e] flex flex-col items-center justify-center text-neutral-500">
+            <div className="mb-4 opacity-20">
+                <svg className="w-32 h-32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={0.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+            </div>
+            <p className="text-sm">Select a file to start editing</p>
+            <p className="text-xs mt-2 opacity-60">VS Code Clone Demo</p>
+        </div>
+    );
+  }
+
   return (
-    <div className="bg-[#1e1e1e] h-full w-full flex flex-col">
+    <div className="bg-[#1e1e1e] h-full w-full flex flex-col overflow-hidden">
       {/* Tabs */}
-      <div className="flex bg-neutral-900 overflow-x-auto scrollbar-hide">
-        <div className="px-4 py-2 bg-[#1e1e1e] border-t-2 border-blue-500 text-sm text-neutral-200 flex items-center gap-2 min-w-fit">
-          <span className="text-blue-300">TSX</span>
-          <span>Splitter.tsx</span>
-          <span className="ml-2 text-neutral-500 hover:text-white cursor-pointer">×</span>
-        </div>
-        <div className="px-4 py-2 bg-neutral-900 border-t-2 border-transparent text-sm text-neutral-500 hover:bg-[#1e1e1e] cursor-pointer flex items-center gap-2 min-w-fit">
-           <span className="text-sky-300">CSS</span>
-          <span>index.css</span>
-        </div>
-        <div className="px-4 py-2 bg-neutral-900 border-t-2 border-transparent text-sm text-neutral-500 hover:bg-[#1e1e1e] cursor-pointer flex items-center gap-2 min-w-fit">
-           <span className="text-blue-300">TSX</span>
-          <span>App.tsx</span>
-        </div>
+      <div className="flex bg-[#252526] overflow-x-auto scrollbar-hide h-9">
+        {openFiles.map((file) => (
+          <div
+            key={file.id}
+            onClick={() => onSwitchFile(file.id)}
+            className={`
+              group px-3 min-w-[120px] max-w-[200px] border-r border-[#1e1e1e] text-xs flex items-center gap-2 cursor-pointer select-none
+              ${activeFile?.id === file.id 
+                ? 'bg-[#1e1e1e] text-white border-t-2 border-t-blue-500' 
+                : 'bg-[#2d2d2d] text-[#969696] hover:bg-[#2a2d2e] border-t-2 border-t-transparent'}
+            `}
+          >
+            <span className="shrink-0 opacity-80">
+                <FileIcon ext={file.name.split('.').pop() || ''} />
+            </span>
+            <span className="truncate flex-1">{file.name}</span>
+            <span 
+                onClick={(e) => onCloseFile(e, file.id)}
+                className={`p-0.5 rounded-md hover:bg-neutral-700 opacity-0 group-hover:opacity-100 ${activeFile?.id === file.id ? 'opacity-100' : ''}`}
+            >
+               <CloseIcon />
+            </span>
+          </div>
+        ))}
       </div>
 
       {/* Breadcrumbs */}
-      <div className="h-6 bg-[#1e1e1e] border-b border-neutral-800 flex items-center px-4 text-xs text-neutral-500">
-        src <span className="mx-1">›</span> components <span className="mx-1">›</span> Splitter.tsx
-      </div>
+      {activeFile && (
+         <div className="h-6 bg-[#1e1e1e] flex items-center px-4 text-xs text-neutral-500 shrink-0">
+            src <span className="mx-1">›</span> ... <span className="mx-1">›</span> {activeFile.name}
+         </div>
+      )}
 
       {/* Code Area */}
-      <div className="flex-1 overflow-auto p-2 custom-scrollbar">
-        <CodeLine num={1} content={<><span className="text-purple-400">import</span> React, {'{'} useState, useCallback {'}'} <span className="text-purple-400">from</span> <span className="text-green-400">'react'</span>;</>} />
-        <CodeLine num={2} content="" />
-        <CodeLine num={3} content={<><span className="text-purple-400">interface</span> <span className="text-yellow-300">SplitterProps</span> {'{'}</>} />
-        <CodeLine num={4} indent={1} content={<>children: React.ReactNode;</>} />
-        <CodeLine num={5} indent={1} content={<>initialWidth?: <span className="text-blue-400">number</span>;</>} />
-        <CodeLine num={6} content={'}'} />
-        <CodeLine num={7} content="" />
-        <CodeLine num={8} content={<><span className="text-purple-400">export const</span> <span className="text-yellow-300">Splitter</span>: React.FC&lt;SplitterProps&gt; = ({'{'} children {'}'}) <span className="text-blue-400">=&gt;</span> {'{'}</>} />
-        <CodeLine num={9} indent={1} content={<><span className="text-purple-400">const</span> [width, setWidth] = useState(<span className="text-blue-400">50</span>);</>} />
-        <CodeLine num={10} indent={1} content={<><span className="text-purple-400">const</span> isResizing = useRef(<span className="text-blue-400">false</span>);</>} />
-        <CodeLine num={11} content="" />
-        <CodeLine num={12} indent={1} content={<><span className="text-gray-500">// Drag logic implementation</span></>} />
-        <CodeLine num={13} indent={1} content={<><span className="text-purple-400">const</span> handleMouseDown = (e) <span className="text-blue-400">=&gt;</span> {'{'}</>} />
-        <CodeLine num={14} indent={2} content={<>isResizing.current = <span className="text-blue-400">true</span>;</>} />
-        <CodeLine num={15} indent={2} content={<>document.addEventListener(<span className="text-green-400">'mousemove'</span>, handleMouseMove);</>} />
-        <CodeLine num={16} indent={1} content={'};'} />
-        <CodeLine num={17} content="" />
-        <CodeLine num={18} indent={1} content={<><span className="text-purple-400">return</span> (</>} />
-        <CodeLine num={19} indent={2} content={<>&lt;<span className="text-blue-400">div</span> className=<span className="text-green-400">"flex w-full"</span>&gt;</>} />
-        <CodeLine num={20} indent={3} content={<>{'{'}children{'}'}</>} />
-        <CodeLine num={21} indent={2} content={<>&lt;/<span className="text-blue-400">div</span>&gt;</>} />
-        <CodeLine num={22} indent={1} content={');'} />
-        <CodeLine num={23} content={'};'} />
+      <div className="flex-1 overflow-auto p-2 custom-scrollbar bg-[#1e1e1e] relative">
+        {content}
+        <div className="h-[50vh]"></div> {/* Extra scroll space at bottom */}
       </div>
     </div>
   );

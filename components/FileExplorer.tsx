@@ -1,59 +1,91 @@
+
 import React from 'react';
+import { FileNode } from '../data/fileSystem';
+import { ChevronRightIcon, ChevronDownIcon, FileIcon, FolderIcon } from './Icons';
 
-// Simple Icon components
-const FolderIcon = () => (
-  <svg className="w-4 h-4 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-  </svg>
-);
+interface FileExplorerProps {
+  files: FileNode[];
+  activeFileId: string | null;
+  onFileClick: (file: FileNode) => void;
+  onFolderToggle: (folderId: string) => void;
+}
 
-const FileIcon = ({ ext }: { ext: string }) => {
-  let color = "text-neutral-400";
-  if (ext === 'tsx') color = "text-blue-300";
-  if (ext === 'css') color = "text-sky-300";
-  if (ext === 'json') color = "text-yellow-300";
-  if (ext === 'html') color = "text-orange-400";
+const FileSystemItem: React.FC<{
+  node: FileNode;
+  level: number;
+  activeFileId: string | null;
+  onFileClick: (file: FileNode) => void;
+  onFolderToggle: (folderId: string) => void;
+}> = ({ node, level, activeFileId, onFileClick, onFolderToggle }) => {
+  const isFolder = node.type === 'folder';
+  const isActive = activeFileId === node.id;
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isFolder) {
+      onFolderToggle(node.id);
+    } else {
+      onFileClick(node);
+    }
+  };
 
   return (
-    <svg className={`w-4 h-4 ${color} mr-2`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    </svg>
+    <div>
+      <div
+        className={`flex items-center py-1 px-2 cursor-pointer select-none text-sm transition-colors
+          ${isActive ? 'bg-[#37373d] text-white' : 'text-neutral-400 hover:bg-[#2a2d2e] hover:text-neutral-200'}
+        `}
+        style={{ paddingLeft: `${level * 12 + 8}px` }}
+        onClick={handleClick}
+      >
+        {isFolder && (
+          <span className="mr-1 text-neutral-400">
+            {node.isOpen ? <ChevronDownIcon /> : <ChevronRightIcon />}
+          </span>
+        )}
+        {!isFolder && <span className="w-4 mr-1" />} {/* Spacer for files to align with folders */}
+        
+        {isFolder ? <FolderIcon /> : <FileIcon ext={node.name.split('.').pop() || ''} />}
+        <span className="truncate">{node.name}</span>
+      </div>
+      
+      {isFolder && node.isOpen && node.children && (
+        <div>
+          {node.children.map((child) => (
+            <FileSystemItem
+              key={child.id}
+              node={child}
+              level={level + 1}
+              activeFileId={activeFileId}
+              onFileClick={onFileClick}
+              onFolderToggle={onFolderToggle}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
-const FileItem = ({ name, ext, active = false, level = 0 }: { name: string; ext?: string; active?: boolean; level: number }) => (
-  <div 
-    className={`flex items-center px-2 py-1.5 text-sm cursor-pointer transition-colors border-l-2
-      ${active ? 'bg-neutral-800 text-white border-blue-500' : 'border-transparent text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200'}
-    `}
-    style={{ paddingLeft: `${level * 12 + 8}px` }}
-  >
-    {ext ? <FileIcon ext={ext} /> : <FolderIcon />}
-    <span className="truncate">{name}</span>
-  </div>
-);
-
-export const FileExplorer: React.FC = () => {
+export const FileExplorer: React.FC<FileExplorerProps> = ({ files, activeFileId, onFileClick, onFolderToggle }) => {
   return (
-    <div className="bg-neutral-900 min-h-full w-full py-2">
-      <div className="px-4 py-2 text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Explorer</div>
-      
-      <div className="flex flex-col">
-        <FileItem name="src" level={0} />
-        <FileItem name="components" level={1} />
-        <FileItem name="Splitter.tsx" ext="tsx" level={2} active />
-        <FileItem name="Button.tsx" ext="tsx" level={2} />
-        <FileItem name="Header.tsx" ext="tsx" level={2} />
-        <FileItem name="hooks" level={1} />
-        <FileItem name="useResize.ts" ext="tsx" level={2} />
-        <FileItem name="App.tsx" ext="tsx" level={1} />
-        <FileItem name="index.tsx" ext="tsx" level={1} />
-        <FileItem name="index.css" ext="css" level={1} />
-        <FileItem name="public" level={0} />
-        <FileItem name="index.html" ext="html" level={1} />
-        <FileItem name="package.json" ext="json" level={0} />
-        <FileItem name="tsconfig.json" ext="json" level={0} />
-        <FileItem name="README.md" ext="txt" level={0} />
+    <div className="bg-[#252526] h-full w-full flex flex-col text-sm">
+      <div className="h-9 px-4 flex items-center text-xs font-bold text-neutral-500 uppercase tracking-wider shrink-0">
+        Explorer
+      </div>
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+         <div className="pb-2">
+            {files.map((node) => (
+            <FileSystemItem
+                key={node.id}
+                node={node}
+                level={0}
+                activeFileId={activeFileId}
+                onFileClick={onFileClick}
+                onFolderToggle={onFolderToggle}
+            />
+            ))}
+         </div>
       </div>
     </div>
   );
